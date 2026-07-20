@@ -32,6 +32,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# personal content (resume/experience/projects/personal text) — kept out of the
+# public repo on purpose; see README.md for how it's deployed to Vercel
+/content/**/*.md
+!/content/**/_template.md
 
 # vercel
 .vercel
