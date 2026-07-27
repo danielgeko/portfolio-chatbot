@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { anthropic } from "@/lib/anthropic";
-import { getSystemBlocks } from "@/lib/context-loader";
+import { getChatbotSystemBlocks } from "@/lib/context-loader";
 import { MODEL, MAX_TOKENS, MAX_HISTORY_MESSAGES } from "@/lib/constants";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: MAX_TOKENS,
-    system: getSystemBlocks(),
+    system: getChatbotSystemBlocks(),
     messages: cappedHistory,
   });
 
