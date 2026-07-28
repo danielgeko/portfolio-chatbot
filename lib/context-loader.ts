@@ -79,8 +79,21 @@ export function getProjectsMarkdown(): string {
   return `# Projects\n\n${readEntries("projects")}`;
 }
 
-export function getContactMarkdown(): string {
-  return readContentFile("contact.md");
+export type ContactInfo = {
+  name: string;
+  location: string;
+  email: string;
+  phone: string;
+  phoneLink: string;
+  website: string;
+  websiteLink: string;
+  linkedin: string;
+  linkedinLink: string;
+};
+
+export function getContactInfo(): ContactInfo {
+  const { data } = matter(readContentFile("contact.md"));
+  return data as ContactInfo;
 }
 
 // ---- Chatbot context ----
