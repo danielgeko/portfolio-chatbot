@@ -1,6 +1,6 @@
-import { Markdown } from "@/components/Markdown";
-import { getProjectsMarkdown } from "@/lib/context-loader";
+import { ProjectsGrid } from "@/components/ProjectsGrid";
+import { getProjects } from "@/lib/context-loader";
 
 export default function ProjectsPage() {
-  return <Markdown>{getProjectsMarkdown()}</Markdown>;
+  return <ProjectsGrid projects={getProjects()} />;
 }

@@ -75,8 +75,25 @@ function readEntries(relDir: string): string {
 // ---- Static page content (rendered as markdown) ----
 // (The Resume page renders public/resume.pdf directly, so no resume loader here.)
 
-export function getProjectsMarkdown(): string {
-  return `# Projects\n\n${readEntries("projects")}`;
+export type Project = {
+  title: string;
+  org?: string;
+  tags: string[];
+  link?: string;
+  body: string;
+};
+
+export function getProjects(): Project[] {
+  return readEntryFiles("projects").map((raw) => {
+    const { data, content } = matter(raw);
+    return {
+      title: String(data.title ?? "Untitled"),
+      org: data.org ? String(data.org) : undefined,
+      tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
+      link: data.link ? String(data.link) : undefined,
+      body: content.trim(),
+    };
+  });
 }
 
 export type ContactInfo = {
