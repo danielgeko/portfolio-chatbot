@@ -27,3 +27,34 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
+
+/* Active nav highlight grows in when a new item is selected. */
+@keyframes pop-in {
+  from {
+    transform: scale(0.8);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 180ms ease-out;
+}
+
+/* Project tiles grow/fade in on load (staggered via inline animation-delay). */
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-tile-in {
+  /* "backwards" (not "both") so the held final transform doesn't block hover scaling. */
+  animation: tile-in 260ms ease-out backwards;
+}
