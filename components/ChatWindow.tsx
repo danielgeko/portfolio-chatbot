@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { CHATBOT_GREETING } from "@/lib/constants";
@@ -9,9 +9,39 @@ import { CHATBOT_GREETING } from "@/lib/constants";
 // not a chat bubble, and never sent back to the API as conversation history.
 type Message = { role: "user" | "assistant" | "notice"; content: string };
 
+// Per-tab session key: history survives navigation + reload, clears on tab close.
+const CHAT_STORAGE_KEY = "askdaniel:chat";
+
 export function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Restore this session's conversation on mount (survives navigating away and
+  // back, and reloads within the tab). Done in an effect — not a lazy useState
+  // initializer — to avoid an SSR/hydration mismatch.
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time hydrate from sessionStorage; keeps first client render matching SSR (empty) to avoid a mismatch */
+    try {
+      const saved = sessionStorage.getItem(CHAT_STORAGE_KEY);
+      if (saved) setMessages(JSON.parse(saved) as Message[]);
+    } catch {
+      // storage unavailable (private mode, disabled, etc.) — stay in-memory
+    }
+    setHydrated(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  // Persist after hydration. The guard stops the initial empty [] (the pre-
+  // hydration first render) from clobbering the saved history.
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // ignore storage write failures (e.g. quota)
+    }
+  }, [messages, hydrated]);
 
   const isEmpty = messages.length === 0;
 
