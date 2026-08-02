@@ -26,7 +26,7 @@ export function ChatInput({ onSend, disabled }: Props) {
         onKeyDown={(e) => {
           if (e.key === "Enter") submit();
         }}
-        placeholder="Ask me anything about Daniel..."
+        placeholder="Ask me anything..."
         disabled={disabled}
       />
       <button
