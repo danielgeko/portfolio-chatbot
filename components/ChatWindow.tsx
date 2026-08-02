@@ -5,7 +5,9 @@ import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { CHATBOT_GREETING } from "@/lib/constants";
 
-type Message = { role: "user" | "assistant"; content: string };
+// "notice" = a system message (rate limit, error) shown as a centered pill,
+// not a chat bubble, and never sent back to the API as conversation history.
+type Message = { role: "user" | "assistant" | "notice"; content: string };
 
 export function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -22,20 +24,28 @@ export function ChatWindow() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        // Only real conversation turns go to the model — notices are UI-only.
+        body: JSON.stringify({ messages: next.filter((m) => m.role !== "notice") }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? `Request failed (${res.status})`);
+        // 429 is an expected, graceful limit — show its friendly message as-is.
+        // Anything else is a genuine error — show a generic, non-technical notice.
+        const content =
+          res.status === 429
+            ? (err.error ?? "You've hit the message limit — please try again in about an hour.")
+            : "Something went wrong. Please try again.";
+        setMessages((prev) => [...prev, { role: "notice", content }]);
+        return;
       }
 
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-    } catch (e) {
+    } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `Something went wrong: ${(e as Error).message}` },
+        { role: "notice", content: "Something went wrong. Please try again." },
       ]);
     } finally {
       setLoading(false);
@@ -59,9 +69,17 @@ export function ChatWindow() {
         <>
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-3xl space-y-3 p-4">
-              {messages.map((m, i) => (
-                <MessageBubble key={i} role={m.role} content={m.content} />
-              ))}
+              {messages.map((m, i) =>
+                m.role === "notice" ? (
+                  <div key={i} className="flex justify-center">
+                    <span className="rounded-full bg-red-50 px-3 py-1 text-center text-xs text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                      {m.content}
+                    </span>
+                  </div>
+                ) : (
+                  <MessageBubble key={i} role={m.role} content={m.content} />
+                )
+              )}
               {loading && <MessageBubble role="assistant" content="..." />}
             </div>
           </div>
