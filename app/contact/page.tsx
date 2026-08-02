@@ -51,7 +51,7 @@ function ContactRow({
     <a
       href={href}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="flex items-center gap-4 rounded-xl border border-zinc-200 p-4 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+      className="relative flex items-center gap-4 rounded-xl border border-zinc-200 p-4 transition duration-200 hover:z-10 hover:scale-[1.03] hover:bg-zinc-50 hover:shadow-md dark:border-zinc-800 dark:hover:bg-zinc-900"
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
         {icon}
