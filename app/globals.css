@@ -58,3 +58,21 @@ body {
   /* "backwards" (not "both") so the held final transform doesn't block hover scaling. */
   animation: tile-in 260ms ease-out backwards;
 }
+
+/* Typing indicator — three dots that bounce one at a time (staggered delay). */
+@keyframes dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.animate-dot-bounce {
+  animation: dot-bounce 1.2s infinite ease-in-out;
+}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
+import { TypingIndicator } from "./TypingIndicator";
 import { CHATBOT_GREETING } from "@/lib/constants";
 
 // "notice" = a system message (rate limit, error) shown as a centered pill,
@@ -168,9 +169,7 @@ export function ChatWindow() {
                   <MessageBubble key={i} role={m.role} content={m.content} />
                 )
               )}
-              {loading && messages[messages.length - 1]?.role === "user" && (
-                <MessageBubble role="assistant" content="..." />
-              )}
+              {loading && messages[messages.length - 1]?.role === "user" && <TypingIndicator />}
             </div>
           </div>
           <div>
