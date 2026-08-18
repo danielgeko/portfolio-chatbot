@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { CHATBOT_GREETING } from "@/lib/constants";
@@ -16,6 +16,12 @@ export function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const rafRef = useRef<number | null>(null);
+
+  // Stop the typewriter loop if the user navigates away mid-reply.
+  useEffect(() => () => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+  }, []);
 
   // Restore this session's conversation on mount (survives navigating away and
   // back, and reloads within the tab). Done in an effect — not a lazy useState
@@ -70,8 +76,60 @@ export function ChatWindow() {
         return;
       }
 
-      const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      // Read the network stream into a buffer (`target`) without touching the
+      // UI, and reveal it to the screen at a steady per-frame pace. Decoupling
+      // the two makes the reply type in smoothly instead of in bursty chunks.
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response body");
+      const decoder = new TextDecoder();
+      let target = "";
+      let shown = 0;
+      let streamDone = false;
+      let assistantAdded = false;
+
+      const reveal = new Promise<void>((resolve) => {
+        const tick = () => {
+          if (!assistantAdded && target.length > 0) {
+            assistantAdded = true;
+            setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+          }
+          if (shown < target.length) {
+            const remaining = target.length - shown;
+            // A few chars/frame; nudge faster when far behind so long replies
+            // don't drag, but never jump far enough to look chunky.
+            const step = Math.min(8, Math.max(1, Math.ceil(remaining / 20)));
+            shown = Math.min(target.length, shown + step);
+            const text = target.slice(0, shown);
+            setMessages((prev) => {
+              const copy = [...prev];
+              copy[copy.length - 1] = { role: "assistant", content: text };
+              return copy;
+            });
+          }
+          if (streamDone && shown >= target.length) {
+            rafRef.current = null;
+            resolve();
+            return;
+          }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      });
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        target += decoder.decode(value, { stream: true });
+      }
+      streamDone = true;
+      await reveal;
+
+      if (!assistantAdded) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "notice", content: "Something went wrong. Please try again." },
+        ]);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -110,7 +168,9 @@ export function ChatWindow() {
                   <MessageBubble key={i} role={m.role} content={m.content} />
                 )
               )}
-              {loading && <MessageBubble role="assistant" content="..." />}
+              {loading && messages[messages.length - 1]?.role === "user" && (
+                <MessageBubble role="assistant" content="..." />
+              )}
             </div>
           </div>
           <div>

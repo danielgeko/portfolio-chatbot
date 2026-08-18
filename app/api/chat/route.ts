@@ -35,21 +35,35 @@ export async function POST(req: NextRequest) {
 
   const cappedHistory = messages.slice(-MAX_HISTORY_MESSAGES);
 
-  const response = await anthropic.messages.create({
+  const stream = anthropic.messages.stream({
     model: MODEL,
     max_tokens: MAX_TOKENS,
     system: getChatbotSystemBlocks(),
     messages: cappedHistory,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[chat] usage:", response.usage);
-  }
+  const encoder = new TextEncoder();
+  const responseStream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        for await (const event of stream) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            controller.enqueue(encoder.encode(event.delta.text));
+          }
+        }
+        if (process.env.NODE_ENV !== "production") {
+          const final = await stream.finalMessage();
+          console.log("[chat] usage:", final.usage);
+        }
+      } catch (err) {
+        controller.error(err);
+        return;
+      }
+      controller.close();
+    },
+  });
 
-  const reply = response.content
-    .filter((block) => block.type === "text")
-    .map((block) => block.text)
-    .join("\n");
-
-  return NextResponse.json({ reply });
+  return new Response(responseStream, {
+    headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+  });
 }
